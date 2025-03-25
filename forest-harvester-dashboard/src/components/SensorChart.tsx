@@ -3,6 +3,7 @@ import { Box, Typography, useTheme, Chip, Paper } from '@mui/material';
 import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveBar } from '@nivo/bar';
 import { CheckCircle, Warning, Error, Circle } from '@mui/icons-material';
+import { BarTooltipProps } from '@nivo/bar';
 
 interface DataPoint {
   timestamp: string;
@@ -223,35 +224,17 @@ const SensorChart: React.FC<Props> = ({
                     labelSkipHeight={12}
                     labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
                     animate={false}
-                    tooltip={({ id, value, color }: { id: string; value: number; color: string }) => (
+                    tooltip={(props: BarTooltipProps<any>) => (
                       <Box
                         sx={{
                           background: theme.palette.background.paper,
-                          padding: 1.5,
-                          border: `1px solid ${theme.palette.divider}`,
-                          borderRadius: 1,
+                          padding: '12px',
+                          border: '1px solid',
+                          borderColor: theme.palette.divider,
+                          borderRadius: '4px',
                         }}
                       >
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            mb: 1,
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              width: 12,
-                              height: 12,
-                              borderRadius: '50%',
-                              backgroundColor: color,
-                              mr: 1,
-                            }}
-                          />
-                          <Typography variant="body2">
-                            {`${id}: ${Number(value).toFixed(1)}${unit}`}
-                          </Typography>
-                        </Box>
+                        <strong>{String(props.id)}</strong>: {props.value} {unit}
                       </Box>
                     )}
                   />

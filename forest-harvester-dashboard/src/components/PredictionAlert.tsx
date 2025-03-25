@@ -3,6 +3,7 @@ import {
   Box,
   Typography,
   Paper,
+  useTheme,
   LinearProgress,
   Tooltip,
   Fade,
@@ -36,6 +37,8 @@ const PredictionAlert: React.FC<Props> = ({
     { name: 'Blade Sharpness', importance: 0.05 },
   ]
 }) => {
+  const theme = useTheme();
+
   const getStatusInfo = (status: string) => {
     switch (status) {
       case 'Normal Operation':
@@ -46,7 +49,6 @@ const PredictionAlert: React.FC<Props> = ({
           gradientEnd: '#00c853',
           description: 'All systems are functioning within normal parameters',
           recommendation: 'Continue regular monitoring',
-          trend: 'stable',
         };
       case 'Maintenance Recommended':
         return {
@@ -64,7 +66,6 @@ const PredictionAlert: React.FC<Props> = ({
           gradientEnd: '#ff9800',
           description: 'Some parameters are approaching critical levels',
           recommendation: 'Schedule maintenance soon',
-          trend: 'declining',
         };
       case 'Maintenance Required':
         return {
@@ -82,7 +83,6 @@ const PredictionAlert: React.FC<Props> = ({
           gradientEnd: '#d32f2f',
           description: 'Immediate maintenance needed',
           recommendation: 'Stop operations and service immediately',
-          trend: 'critical',
         };
       default:
         return {
@@ -92,7 +92,6 @@ const PredictionAlert: React.FC<Props> = ({
           gradientEnd: '#546e7a',
           description: 'System status unknown',
           recommendation: 'Check sensors',
-          trend: 'unknown',
         };
     }
   };
@@ -108,7 +107,7 @@ const PredictionAlert: React.FC<Props> = ({
             position: 'relative',
             overflow: 'hidden',
             borderRadius: 2,
-            background: '#fff',
+            background: theme.palette.background.paper,
             border: `1px solid ${statusInfo.color}40`,
           }}
         >
@@ -176,11 +175,11 @@ const PredictionAlert: React.FC<Props> = ({
           </Box>
 
           {/* Content Section */}
-          <Box sx={{ p: 2 }}>
+          <Box sx={{ p: 2, bgcolor: theme.palette.background.paper }}>
             {/* Confidence Score */}
             <Box sx={{ mb: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, alignItems: 'center' }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
                   AI Confidence
                 </Typography>
                 <Typography variant="body2" sx={{ color: statusInfo.color, fontWeight: 600 }}>
@@ -203,7 +202,7 @@ const PredictionAlert: React.FC<Props> = ({
             </Box>
 
             {/* Feature Importance */}
-            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
+            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mb: 1 }}>
               Feature Importance
             </Typography>
             {featureImportance.map((feature) => (
@@ -213,7 +212,7 @@ const PredictionAlert: React.FC<Props> = ({
               >
                 <Box sx={{ mb: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
                       {feature.name}
                     </Typography>
                     <Typography variant="caption" sx={{ color: statusInfo.color, fontWeight: 500 }}>
