@@ -93,6 +93,14 @@ const Dashboard: React.FC = () => {
         Blade_Sharpness_Level: 'green',
       }],
       prediction: 'Normal Operation',
+      confidence: 0.85,
+      feature_importance: [
+        { name: 'Hydraulic Pressure', importance: 0.35 },
+        { name: 'Oil Temperature', importance: 0.25 },
+        { name: 'Blade RPM', importance: 0.20 },
+        { name: 'Fuel Consumption', importance: 0.15 },
+        { name: 'Blade Sharpness', importance: 0.05 },
+      ],
     };
 
     // Update colors based on thresholds
@@ -319,7 +327,11 @@ const Dashboard: React.FC = () => {
             {/* System Status */}
             <Grid item xs={12} md={3}>
               <Paper sx={{ p: 3, height: '400px', display: 'flex', alignItems: 'center' }}>
-                <PredictionAlert prediction={data?.prediction || 'Unknown'} />
+                <PredictionAlert 
+                  prediction={data?.prediction || 'Unknown'} 
+                  confidence={data?.confidence}
+                  featureImportance={data?.feature_importance}
+                />
               </Paper>
             </Grid>
 

@@ -14,10 +14,17 @@ export interface SensorColors {
   Blade_Sharpness_Level: 'green' | 'yellow' | 'red';
 }
 
+export interface FeatureImportance {
+  name: string;
+  importance: number;
+}
+
 export interface ApiResponse {
   sensor_data: SensorData[];
   color: SensorColors[];
   prediction: string;
+  confidence: number;
+  feature_importance: FeatureImportance[];
 }
 
 export interface HistoricalDataPoint {

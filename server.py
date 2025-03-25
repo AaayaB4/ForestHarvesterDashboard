@@ -2,7 +2,8 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import joblib
 import numpy as np
-import random # here since no sensors available, we will use this to generate random numbers in a range corresponding to the data we have 
+import random
+from sklearn.preprocessing import StandardScaler
 
 app = Flask(__name__)
 
@@ -15,9 +16,18 @@ CORS(app, resources={
     }
 })
 
-# Load the saved model
+# Load the saved model and scaler
 model = joblib.load('./prediction_data_and_model/xgb_model.pkl')
-print(model)
+scaler = joblib.load('./prediction_data_and_model/scaler.pkl')
+
+# Feature names for importance mapping
+FEATURE_NAMES = [
+    'Hydraulic Pressure',
+    'Oil Temperature',
+    'Blade RPM',
+    'Fuel Consumption',
+    'Blade Sharpness'
+]
 
 @app.route('/')
 def home():
@@ -28,8 +38,7 @@ def predict():
     if request.method == 'OPTIONS':
         return '', 204
 
-    # the 5 parameter below have ranges of integers used in the dataset provided, giving the model to predict all 3 
-    # category of output possible "All good", "Maintenance Due!", "Repair / Replace"
+    # Generate random sensor data
     Hydraulic_Pressure = random.randint(145,300)
     Hydraulic_Oil_Temperature = random.randint(20,85)
     Saw_Blade_RPM = random.randint(700,2700)
@@ -37,13 +46,24 @@ def predict():
     Blade_Sharpness_Level = random.randint(29,100)
 
     sensor_array = [Hydraulic_Pressure, Hydraulic_Oil_Temperature, Saw_Blade_RPM, Fuel_Consumption, Blade_Sharpness_Level]
-    sensor_data = np.array([sensor_array]) # convert to np array for inputting this to xgboost model
-
-    print(f"{sensor_data.shape} {sensor_data}") # 1 row, 5 columns shape
+    sensor_data = np.array([sensor_array])
     
-    prediction = int(model.predict(sensor_data))
+    # Scale the data
+    scaled_data = scaler.transform(sensor_data)
     
-    # here prediction is an int value predicted by the model as 0, 1 or 2. So we translate it to a readable message 
+    # Get prediction and probabilities
+    prediction = int(model.predict(scaled_data))
+    probabilities = model.predict_proba(scaled_data)[0]
+    confidence = float(max(probabilities))
+    
+    # Get feature importance
+    feature_importance = model.feature_importances_
+    feature_importance_dict = [
+        {"name": name, "importance": float(imp)}
+        for name, imp in zip(FEATURE_NAMES, feature_importance)
+    ]
+    
+    # Translate prediction to readable message
     if prediction == 0:
         prediction = "All good"
     elif prediction == 1:
@@ -51,7 +71,7 @@ def predict():
     else:
         prediction = "Repair / Replace"
 
-    # here the color alerts logic is stated as strings of "green", "red", "yellow"  
+    # Color alerts logic
     if Hydraulic_Pressure in range(180,280):
         Hydraulic_Pressure_color = "green"
     elif Hydraulic_Pressure in range(175,180) or Hydraulic_Pressure in range(280,290):
@@ -88,7 +108,9 @@ def predict():
         Blade_Sharpness_Level_color = "red"
 
     response = jsonify({
-        'prediction': prediction, 
+        'prediction': prediction,
+        'confidence': confidence,
+        'feature_importance': feature_importance_dict,
         'sensor_data': [{
             'Hydraulic_Pressure': Hydraulic_Pressure, 
             'Hydraulic_Oil_Temperature': Hydraulic_Oil_Temperature,

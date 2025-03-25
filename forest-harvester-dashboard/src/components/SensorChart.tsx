@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Box, Typography, useTheme, Chip, Paper } from '@mui/material';
 import { ResponsiveLine } from '@nivo/line';
+import { ResponsiveBar } from '@nivo/bar';
 import { CheckCircle, Warning, Error, Circle } from '@mui/icons-material';
 
 interface DataPoint {
@@ -61,6 +62,19 @@ const SensorChart: React.FC<Props> = ({
 
     return [mainData, comparisonData];
   }, [data, compareData, label, color, compareColor]);
+
+  // Prepare bar chart data
+  const barChartData = useMemo(() => {
+    if (!data.length) return [];
+    
+    return data.map((d) => ({
+      timestamp: d.timestamp,
+      [label]: d.value,
+      ...(compareData && compareData.length > 0 ? {
+        [`Compare: ${label}`]: compareData.find(cd => cd.timestamp === d.timestamp)?.value || 0
+      } : {})
+    }));
+  }, [data, compareData, label]);
 
   // Calculate y-axis range with padding
   const yScale = useMemo(() => {
@@ -151,99 +165,78 @@ const SensorChart: React.FC<Props> = ({
                 bottom: 0,
                 pointerEvents: 'none',
               }}>
-                <ResponsiveLine
-                  data={chartData}
-                  margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
-                  xScale={{
-                    type: 'point',
-                  }}
-                  yScale={yScale}
-                  curve={chartType === 'area' ? 'monotoneX' : 'linear'}
-                  axisTop={null}
-                  axisRight={null}
-                  axisBottom={{
-                    tickSize: 5,
-                    tickPadding: 5,
-                    tickRotation: -45,
-                  }}
-                  axisLeft={{
-                    tickSize: 5,
-                    tickPadding: 5,
-                    tickRotation: 0,
-                    format: (value) => `${value.toFixed(1)}${unit}`,
-                  }}
-                  enablePoints={chartType === 'line'}
-                  pointSize={6}
-                  pointColor={{ theme: 'background' }}
-                  pointBorderWidth={2}
-                  pointBorderColor={{ from: 'serieColor' }}
-                  enableArea={chartType === 'area'}
-                  areaOpacity={0.15}
-                  enableGridX={false}
-                  enableGridY={true}
-                  enableSlices="x"
-                  animate={false}
-                  colors={chartData.map(d => d.color)}
-                  theme={{
-                    axis: {
-                      domain: {
+                {chartType === 'bar' ? (
+                  <ResponsiveBar
+                    data={barChartData}
+                    keys={[label, ...(compareData ? [`Compare: ${label}`] : [])]}
+                    indexBy="timestamp"
+                    margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
+                    padding={0.3}
+                    valueScale={{ type: 'linear', min: yScale.min, max: yScale.max }}
+                    colors={{ scheme: 'nivo' }}
+                    theme={{
+                      axis: {
+                        domain: {
+                          line: {
+                            stroke: theme.palette.divider,
+                          },
+                        },
+                        ticks: {
+                          line: {
+                            stroke: theme.palette.divider,
+                          },
+                          text: {
+                            fill: theme.palette.text.secondary,
+                            fontSize: 11,
+                          },
+                        },
+                      },
+                      grid: {
                         line: {
                           stroke: theme.palette.divider,
+                          strokeWidth: 1,
+                          strokeDasharray: '4 4',
                         },
                       },
-                      ticks: {
-                        line: {
-                          stroke: theme.palette.divider,
+                      tooltip: {
+                        container: {
+                          background: theme.palette.background.paper,
+                          color: theme.palette.text.primary,
+                          fontSize: 12,
+                          borderRadius: 4,
+                          boxShadow: theme.shadows[3],
                         },
-                        text: {
-                          fill: theme.palette.text.secondary,
-                          fontSize: 11,
-                        },
                       },
-                    },
-                    grid: {
-                      line: {
-                        stroke: theme.palette.divider,
-                        strokeWidth: 1,
-                        strokeDasharray: '4 4',
-                      },
-                    },
-                    crosshair: {
-                      line: {
-                        stroke: theme.palette.text.secondary,
-                        strokeWidth: 1,
-                        strokeOpacity: 0.35,
-                      },
-                    },
-                    tooltip: {
-                      container: {
-                        background: theme.palette.background.paper,
-                        color: theme.palette.text.primary,
-                        fontSize: 12,
-                        borderRadius: 4,
-                        boxShadow: theme.shadows[3],
-                      },
-                    },
-                  }}
-                  sliceTooltip={({ slice }) => (
-                    <Box
-                      sx={{
-                        background: theme.palette.background.paper,
-                        padding: 1.5,
-                        border: `1px solid ${theme.palette.divider}`,
-                        borderRadius: 1,
-                      }}
-                    >
-                      <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                        {String(slice.points[0].data.x)}
-                      </Typography>
-                      {slice.points.map((point) => (
+                    }}
+                    axisLeft={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: 0,
+                      format: (value) => `${value.toFixed(1)}${unit}`,
+                    }}
+                    axisBottom={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: -45,
+                    }}
+                    labelSkipWidth={12}
+                    labelSkipHeight={12}
+                    labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
+                    animate={false}
+                    tooltip={({ id, value, color }: { id: string; value: number; color: string }) => (
+                      <Box
+                        sx={{
+                          background: theme.palette.background.paper,
+                          padding: 1.5,
+                          border: `1px solid ${theme.palette.divider}`,
+                          borderRadius: 1,
+                        }}
+                      >
                         <Box
-                          key={point.id}
                           sx={{
                             display: 'flex',
                             alignItems: 'center',
-                            mt: 1,
+                            mb: 1,
                           }}
                         >
                           <Box
@@ -251,18 +244,131 @@ const SensorChart: React.FC<Props> = ({
                               width: 12,
                               height: 12,
                               borderRadius: '50%',
-                              backgroundColor: point.serieColor,
+                              backgroundColor: color,
                               mr: 1,
                             }}
                           />
                           <Typography variant="body2">
-                            {`${point.serieId}: ${Number(point.data.y).toFixed(1)}${unit}`}
+                            {`${id}: ${Number(value).toFixed(1)}${unit}`}
                           </Typography>
                         </Box>
-                      ))}
-                    </Box>
-                  )}
-                />
+                      </Box>
+                    )}
+                  />
+                ) : (
+                  <ResponsiveLine
+                    data={chartData}
+                    margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
+                    xScale={{
+                      type: 'point',
+                    }}
+                    yScale={yScale}
+                    curve={chartType === 'area' ? 'monotoneX' : 'linear'}
+                    axisTop={null}
+                    axisRight={null}
+                    axisBottom={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: -45,
+                    }}
+                    axisLeft={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: 0,
+                      format: (value) => `${value.toFixed(1)}${unit}`,
+                    }}
+                    enablePoints={chartType === 'line'}
+                    pointSize={6}
+                    pointColor={{ theme: 'background' }}
+                    pointBorderWidth={2}
+                    pointBorderColor={{ from: 'serieColor' }}
+                    enableArea={chartType === 'area'}
+                    areaOpacity={0.15}
+                    enableGridX={false}
+                    enableGridY={true}
+                    enableSlices="x"
+                    animate={false}
+                    colors={chartData.map(d => d.color)}
+                    theme={{
+                      axis: {
+                        domain: {
+                          line: {
+                            stroke: theme.palette.divider,
+                          },
+                        },
+                        ticks: {
+                          line: {
+                            stroke: theme.palette.divider,
+                          },
+                          text: {
+                            fill: theme.palette.text.secondary,
+                            fontSize: 11,
+                          },
+                        },
+                      },
+                      grid: {
+                        line: {
+                          stroke: theme.palette.divider,
+                          strokeWidth: 1,
+                          strokeDasharray: '4 4',
+                        },
+                      },
+                      crosshair: {
+                        line: {
+                          stroke: theme.palette.text.secondary,
+                          strokeWidth: 1,
+                          strokeOpacity: 0.35,
+                        },
+                      },
+                      tooltip: {
+                        container: {
+                          background: theme.palette.background.paper,
+                          color: theme.palette.text.primary,
+                          fontSize: 12,
+                          borderRadius: 4,
+                          boxShadow: theme.shadows[3],
+                        },
+                      },
+                    }}
+                    sliceTooltip={({ slice }) => (
+                      <Box
+                        sx={{
+                          background: theme.palette.background.paper,
+                          padding: 1.5,
+                          border: `1px solid ${theme.palette.divider}`,
+                          borderRadius: 1,
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
+                          {String(slice.points[0].data.x)}
+                        </Typography>
+                        {slice.points.map((point) => (
+                          <Box
+                            key={point.id}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              mt: 1,
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: 12,
+                                height: 12,
+                                borderRadius: '50%',
+                                backgroundColor: point.serieColor,
+                                mr: 1,
+                              }}
+                            />
+                            <Typography variant="body2">
+                              {`${point.serieId}: ${Number(point.data.y).toFixed(1)}${unit}`}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                  />
+                )}
               </Box>
             </Box>
           </Box>
