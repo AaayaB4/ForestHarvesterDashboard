@@ -83,11 +83,11 @@
     <script>
         const ctx = document.getElementById('myChart').getContext('2d');
         const dataSets = {
-            hydraulicPressure: [170, 190, 210, 230, 250, 270, 290],
-            oilTemperature: [25, 35, 45, 55, 60, 70, 75],
-            sawBladeRPM: [700, 900, 1300, 1800, 2200, 2600],
-            fuelConsumption: [8, 12, 14, 17, 19, 22],
-            bladeSharpness: [100, 85, 80, 70, 60, 50]
+            hydraulicPressure: [],
+            oilTemperature: [],
+            sawBladeRPM: [],
+            fuelConsumption: [],
+            bladeSharpness: []
         };
         
         let chart = new Chart(ctx, {
@@ -114,29 +114,30 @@
                 scales: {
                     x: {
                         title: {
-                        display: true,
-                        text: 'time (hrs)',
-                        color: 'black',
-                        font: {
-                            size: 13
+                            display: true,
+                            text: 'time (hrs)',
+                            color: 'black',
+                            font: {
+                                size: 13
+                            }
+                        },
+                        ticks: {
+                            color: 'black' 
                         }
                     },
-                    ticks: {
-                    color: 'black' 
-                }
-                },
-                y: {
-                beginAtZero: true,
-                title: {
-                    font:{
-                        color: 'black',
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            font:{
+                                color: 'black',
+                            }
+                        },
+                        ticks: {
+                            color: 'black' 
+                        }
                     }
-                },
-                ticks: {
-                    color: 'black' 
                 }
             }
-        }}
         });
 
         function updateChart() {
@@ -153,6 +154,78 @@
             document.getElementById('parameterSelect').selectedIndex = nextIndex;
             updateChart();
         }
+
+        function updateStatusTable(sensorData, colors) {
+            const table = document.querySelector('.status table');
+            const rows = table.getElementsByTagName('tr');
+            
+            rows[0].getElementsByTagName('td')[0].textContent = sensorData.Hydraulic_Pressure;
+            rows[0].getElementsByTagName('td')[1].getElementsByClassName('status-light')[0].className = `status-light ${colors.Hydraulic_Pressure}`;
+            
+            rows[1].getElementsByTagName('td')[0].textContent = sensorData.Hydraulic_Oil_Temperature;
+            rows[1].getElementsByTagName('td')[1].getElementsByClassName('status-light')[0].className = `status-light ${colors.Hydraulic_Oil_Temperature}`;
+            
+            rows[2].getElementsByTagName('td')[0].textContent = sensorData.Saw_Blade_RPM;
+            rows[2].getElementsByTagName('td')[1].getElementsByClassName('status-light')[0].className = `status-light ${colors.Saw_Blade_RPM}`;
+            
+            rows[3].getElementsByTagName('td')[0].textContent = sensorData.Fuel_Consumption;
+            rows[3].getElementsByTagName('td')[1].getElementsByClassName('status-light')[0].className = `status-light ${colors.Fuel_Consumption}`;
+            
+            rows[4].getElementsByTagName('td')[0].textContent = sensorData.Blade_Sharpness_Level;
+            rows[4].getElementsByTagName('td')[1].getElementsByClassName('status-light')[0].className = `status-light ${colors.Blade_Sharpness_Level}`;
+        }
+
+        function updateAlertMessage(prediction) {
+            const alertMessage = document.getElementById('alert-message');
+            alertMessage.textContent = prediction;
+            
+            // Update color based on prediction
+            if (prediction === 'All good') {
+                alertMessage.style.color = 'green';
+            } else if (prediction === 'Maintenance Due!') {
+                alertMessage.style.color = 'darkorange';
+            } else {
+                alertMessage.style.color = 'red';
+            }
+        }
+
+        function updateData() {
+            fetch('/predict', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                const sensorData = data.sensor_data[0];
+                const colors = data.color[0];
+                const prediction = data.prediction;
+
+                // Update datasets
+                dataSets.hydraulicPressure.push(sensorData.Hydraulic_Pressure);
+                dataSets.oilTemperature.push(sensorData.Hydraulic_Oil_Temperature);
+                dataSets.sawBladeRPM.push(sensorData.Saw_Blade_RPM);
+                dataSets.fuelConsumption.push(sensorData.Fuel_Consumption);
+                dataSets.bladeSharpness.push(sensorData.Blade_Sharpness_Level);
+
+                // Keep only last 6 points
+                Object.keys(dataSets).forEach(key => {
+                    if (dataSets[key].length > 6) {
+                        dataSets[key].shift();
+                    }
+                });
+
+                // Update UI
+                updateChart();
+                updateStatusTable(sensorData, colors);
+                updateAlertMessage(prediction);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Initial update
+        updateData();
+
+        // Update every 2 seconds
+        setInterval(updateData, 2000);
     </script>
 </body>
 

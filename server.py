@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import joblib
 import numpy as np
@@ -6,14 +6,27 @@ import random # here since no sensors available, we will use this to generate ra
 
 app = Flask(__name__)
 
-cors = CORS(app) # allowed all routes for all domains
+# Configure CORS properly
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:3000"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Load the saved model
 model = joblib.load('./prediction_data_and_model/xgb_model.pkl')
 print(model)
 
-@app.route('/predict', methods=['POST'])
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+@app.route('/predict', methods=['POST', 'OPTIONS'])
 def predict():
+    if request.method == 'OPTIONS':
+        return '', 204
 
     # the 5 parameter below have ranges of integers used in the dataset provided, giving the model to predict all 3 
     # category of output possible "All good", "Maintenance Due!", "Repair / Replace"
@@ -74,21 +87,25 @@ def predict():
     elif Blade_Sharpness_Level >= 49:
         Blade_Sharpness_Level_color = "red"
 
-
-    return jsonify({'prediction': prediction, 
-                    'sensor_data':
-                        [{'Hydraulic_Pressure': Hydraulic_Pressure, 
-                        'Hydraulic_Oil_Temperature': Hydraulic_Oil_Temperature,
-                        'Saw_Blade_RPM': Saw_Blade_RPM,
-                        'Fuel_Consumption': Fuel_Consumption,
-                            'Blade_Sharpness_Level': Blade_Sharpness_Level}],
-                    'color':
-                        [{'Hydraulic_Pressure': Hydraulic_Pressure_color, 
-                        'Hydraulic_Oil_Temperature': Hydraulic_Oil_Temperature_color,
-                        'Saw_Blade_RPM': Saw_Blade_RPM_color,
-                        'Fuel_Consumption': Fuel_Consumption_color,
-                            'Blade_Sharpness_Level': Blade_Sharpness_Level_color}]
-                    })
+    response = jsonify({
+        'prediction': prediction, 
+        'sensor_data': [{
+            'Hydraulic_Pressure': Hydraulic_Pressure, 
+            'Hydraulic_Oil_Temperature': Hydraulic_Oil_Temperature,
+            'Saw_Blade_RPM': Saw_Blade_RPM,
+            'Fuel_Consumption': Fuel_Consumption,
+            'Blade_Sharpness_Level': Blade_Sharpness_Level
+        }],
+        'color': [{
+            'Hydraulic_Pressure': Hydraulic_Pressure_color, 
+            'Hydraulic_Oil_Temperature': Hydraulic_Oil_Temperature_color,
+            'Saw_Blade_RPM': Saw_Blade_RPM_color,
+            'Fuel_Consumption': Fuel_Consumption_color,
+            'Blade_Sharpness_Level': Blade_Sharpness_Level_color
+        }]
+    })
+    
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False, host="127.0.0.1", port=5002)
